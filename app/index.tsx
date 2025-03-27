@@ -6,8 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import {StatusBar} from 'expo-status-bar'
 import '../global.css'
 import CustomButton from '@/components/CustomButton'
+import { useRouter } from 'expo-router'
 
 const App = () => {
+  const router = useRouter()
+
   return (
     <View className="flex-1">
       <ImageBackground
@@ -19,7 +22,7 @@ const App = () => {
           className="flex-1"
           colors={['rgba(0, 0, 0, 0.4)', 'rgba(0, 0, 0, 0.8)']}
         >
-          <SafeAreaView className="flex-1 px-1 justify-between">
+          <SafeAreaView className="flex-1 mx-5 my-12 justify-between">
             <View>
               <Text className="text-center text-white font-bold text-4xl">
                 Simple Meditation
@@ -28,7 +31,7 @@ const App = () => {
             </View>
 
             <View>
-              <CustomButton onPress={()=>console.log("first")} title='Get Started'/>
+              <CustomButton onPress={()=>router.push('/nature-meditate')} title='Get Started'/>
             </View>
 
             <StatusBar style="light" />
