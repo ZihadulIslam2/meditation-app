@@ -24,7 +24,7 @@ const GuidedAffirmationGallery = ({
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <Link href={`/affirmation/${item.id}`} asChild>
+            <Link href={`/affirmations/${item.id}`} asChild>
               <Pressable>
                 <View className="h-36 w-32 rounded-md mr-4 ">
                   <Image
