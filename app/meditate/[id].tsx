@@ -1,5 +1,5 @@
 import { View, Text, ImageBackground, Pressable } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import MEDITATION_Images from '@/constants/meditation-images'
 import AppGradient from '@/components/AppGradient'
 import { AntDesign } from '@expo/vector-icons'
@@ -7,18 +7,24 @@ import { router, useLocalSearchParams } from 'expo-router'
 import CustomButton from '@/components/CustomButton'
 import { Audio } from 'expo-av'
 import { MEDITATION_DATA, AUDIO_FILES } from '@/constants/meditation-data'
+import { TimeContext } from '@/contex/Timercontex' 
 
 const Meditate = () => {
   const { id } = useLocalSearchParams()
-  const [secondsRemaining, setSecondsRemaining] = useState(10)
+  const { duration: secondsRemaining, setDuration } = useContext(TimeContext)
+
   const [isMeditating, setIsMeditating] = useState(false)
   const [audioSound, setSound] = useState<Audio.Sound>()
-  const [isPlayingAudio, setPlayingAudio ] = useState(false)
+  const [isPlayingAudio, setPlayingAudio] = useState(false)
+
+  const handleAdjustDuration = () => {
+    if (isMeditating) toggleMeditationSessionStatus()
+    router.push('/(modal)/adjust-meditation-duration')
+  }
 
   useEffect(() => {
     let timerId: NodeJS.Timeout
 
-    // Exit
     if (secondsRemaining === 0) {
       setIsMeditating(false)
       return
@@ -26,7 +32,7 @@ const Meditate = () => {
 
     if (isMeditating) {
       timerId = setTimeout(() => {
-        setSecondsRemaining(secondsRemaining - 1)
+        setDuration(secondsRemaining - 1)
       }, 1000)
     }
 
@@ -35,30 +41,28 @@ const Meditate = () => {
     }
   }, [secondsRemaining, isMeditating])
 
-  // Formate the time left to ensure two deities are display
   const formattedTimeMinutes = String(
     Math.floor(secondsRemaining / 60)
   ).padStart(2, '0')
 
   const formattedTimeSeconds = String(secondsRemaining % 60).padStart(2, '0')
 
-  const toggleMeditationSeasonStatus = async () => {
-    if (secondsRemaining === 0) setSecondsRemaining(10)
+  const toggleMeditationSessionStatus = async () => {
+    if (secondsRemaining === 0) setDuration(10)
 
     setIsMeditating(!isMeditating)
-
     await toggleSound()
   }
 
   const toggleSound = async () => {
-    const sound = audioSound ? audioSound : await initializeSound()
+    const sound = audioSound ?? (await initializeSound())
 
-    const status = await sound?.getStatusAsync();
+    const status = await sound?.getStatusAsync()
 
-    if( status?.isLoaded && !isPlayingAudio ) {
-      await sound.playAsync();
+    if (status?.isLoaded && !isPlayingAudio) {
+      await sound.playAsync()
       setPlayingAudio(true)
-    } else{
+    } else {
       await sound.pauseAsync()
       setPlayingAudio(false)
     }
@@ -66,22 +70,19 @@ const Meditate = () => {
 
   const initializeSound = async () => {
     const audioFileName = MEDITATION_DATA[Number(id) - 1].audio
-
     const { sound } = await Audio.Sound.createAsync(AUDIO_FILES[audioFileName])
-
     setSound(sound)
     return sound
   }
 
   useEffect(() => {
-    return ()=>{
+    return () => {
       audioSound?.unloadAsync()
-
     }
   }, [audioSound])
 
   return (
-    <View className="flex-1 ">
+    <View className="flex-1">
       <ImageBackground
         source={MEDITATION_Images[Number(id) - 1]}
         resizeMode="cover"
@@ -90,7 +91,7 @@ const Meditate = () => {
         <AppGradient colors={['transparent', 'rgba(0, 0, 0, 0.8)']}>
           <Pressable
             onPress={() => router.back()}
-            className="absolute top-16 left-6 z-10 "
+            className="absolute top-16 left-6 z-10"
           >
             <AntDesign name="leftcircleo" size={24} color="black" />
           </Pressable>
@@ -102,10 +103,16 @@ const Meditate = () => {
               </Text>
             </View>
           </View>
+
           <View className="mb-5">
             <CustomButton
-              title="Start Meditation"
-              onPress={toggleMeditationSeasonStatus}
+              title="Adjust duration"
+              onPress={handleAdjustDuration}
+            />
+            <CustomButton
+              title={isMeditating ? 'Pause Meditation' : 'Start Meditation'}
+              onPress={toggleMeditationSessionStatus}
+              containerStyles="mt-4"
             />
           </View>
         </AppGradient>
