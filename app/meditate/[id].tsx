@@ -5,11 +5,15 @@ import AppGradient from '@/components/AppGradient'
 import { AntDesign } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import CustomButton from '@/components/CustomButton'
+import { Audio } from 'expo-av'
+import { MEDITATION_DATA, AUDIO_FILES } from '@/constants/meditation-data'
 
 const Meditate = () => {
   const { id } = useLocalSearchParams()
   const [secondsRemaining, setSecondsRemaining] = useState(10)
   const [isMeditating, setIsMeditating] = useState(false)
+  const [audioSound, setSound] = useState<Audio.Sound>()
+  const [isPlayingAudio, setPlayingAudio ] = useState(false)
 
   useEffect(() => {
     let timerId: NodeJS.Timeout
@@ -32,12 +36,51 @@ const Meditate = () => {
   }, [secondsRemaining, isMeditating])
 
   // Formate the time left to ensure two deities are display
-  const formattedTimeMinutes = String(Math.floor(secondsRemaining/60)).padStart(2, "0")
+  const formattedTimeMinutes = String(
+    Math.floor(secondsRemaining / 60)
+  ).padStart(2, '0')
 
-  const formattedTimeSeconds = String(secondsRemaining % 60).padStart(2, "0")
-  
-  return(
+  const formattedTimeSeconds = String(secondsRemaining % 60).padStart(2, '0')
 
+  const toggleMeditationSeasonStatus = async () => {
+    if (secondsRemaining === 0) setSecondsRemaining(10)
+
+    setIsMeditating(!isMeditating)
+
+    await toggleSound()
+  }
+
+  const toggleSound = async () => {
+    const sound = audioSound ? audioSound : await initializeSound()
+
+    const status = await sound?.getStatusAsync();
+
+    if( status?.isLoaded && !isPlayingAudio ) {
+      await sound.playAsync();
+      setPlayingAudio(true)
+    } else{
+      await sound.pauseAsync()
+      setPlayingAudio(false)
+    }
+  }
+
+  const initializeSound = async () => {
+    const audioFileName = MEDITATION_DATA[Number(id) - 1].audio
+
+    const { sound } = await Audio.Sound.createAsync(AUDIO_FILES[audioFileName])
+
+    setSound(sound)
+    return sound
+  }
+
+  useEffect(() => {
+    return ()=>{
+      audioSound?.unloadAsync()
+
+    }
+  }, [audioSound])
+
+  return (
     <View className="flex-1 ">
       <ImageBackground
         source={MEDITATION_Images[Number(id) - 1]}
@@ -62,7 +105,7 @@ const Meditate = () => {
           <View className="mb-5">
             <CustomButton
               title="Start Meditation"
-              onPress={() => setIsMeditating(true)}
+              onPress={toggleMeditationSeasonStatus}
             />
           </View>
         </AppGradient>
