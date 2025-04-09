@@ -7,15 +7,17 @@ import { router, useLocalSearchParams } from 'expo-router'
 import CustomButton from '@/components/CustomButton'
 import { Audio } from 'expo-av'
 import { MEDITATION_DATA, AUDIO_FILES } from '@/constants/meditation-data'
-import { TimeContext } from '@/contex/Timercontex' 
+import { TimeContext } from '@/contex/Timercontex'
 
 const Meditate = () => {
   const { id } = useLocalSearchParams()
   const { duration: secondsRemaining, setDuration } = useContext(TimeContext)
+  const [initialDuration, setInitialDuration] = useState(secondsRemaining) // Store initial duration
 
   const [isMeditating, setIsMeditating] = useState(false)
   const [audioSound, setSound] = useState<Audio.Sound>()
   const [isPlayingAudio, setPlayingAudio] = useState(false)
+  const [timerCompleted, setTimerCompleted] = useState(false)
 
   const handleAdjustDuration = () => {
     if (isMeditating) toggleMeditationSessionStatus()
@@ -25,8 +27,11 @@ const Meditate = () => {
   useEffect(() => {
     let timerId: NodeJS.Timeout
 
-    if (secondsRemaining === 0) {
+    if (secondsRemaining === 0 && isMeditating) {
       setIsMeditating(false)
+      setTimerCompleted(true)
+      audioSound?.stopAsync()
+      setPlayingAudio(false)
       return
     }
 
@@ -48,23 +53,37 @@ const Meditate = () => {
   const formattedTimeSeconds = String(secondsRemaining % 60).padStart(2, '0')
 
   const toggleMeditationSessionStatus = async () => {
-    if (secondsRemaining === 0) setDuration(10)
+    if (secondsRemaining === 0) {
+      setDuration(initialDuration)
+      setTimerCompleted(false)
+    }
 
     setIsMeditating(!isMeditating)
     await toggleSound()
   }
 
   const toggleSound = async () => {
-    const sound = audioSound ?? (await initializeSound())
+    try {
+      if (!audioSound) {
+        const sound = await initializeSound()
+        await sound.playAsync()
+        setPlayingAudio(true)
+        return
+      }
 
-    const status = await sound?.getStatusAsync()
+      const status = await audioSound.getStatusAsync()
 
-    if (status?.isLoaded && !isPlayingAudio) {
-      await sound.playAsync()
-      setPlayingAudio(true)
-    } else {
-      await sound.pauseAsync()
-      setPlayingAudio(false)
+      if (status.isLoaded) {
+        if (isPlayingAudio) {
+          await audioSound.pauseAsync()
+          setPlayingAudio(false)
+        } else {
+          await audioSound.playAsync()
+          setPlayingAudio(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling sound:', error)
     }
   }
 
@@ -75,11 +94,24 @@ const Meditate = () => {
     return sound
   }
 
+  const resetTimer = () => {
+    setDuration(initialDuration)
+    setTimerCompleted(false)
+    if (isMeditating) {
+      setIsMeditating(false)
+      audioSound?.stopAsync()
+      setPlayingAudio(false)
+    }
+  }
+
   useEffect(() => {
+    // Store the initial duration when component mounts
+    setInitialDuration(secondsRemaining)
+
     return () => {
       audioSound?.unloadAsync()
     }
-  }, [audioSound])
+  }, [])
 
   return (
     <View className="flex-1">
@@ -109,11 +141,20 @@ const Meditate = () => {
               title="Adjust duration"
               onPress={handleAdjustDuration}
             />
-            <CustomButton
-              title={isMeditating ? 'Pause Meditation' : 'Start Meditation'}
-              onPress={toggleMeditationSessionStatus}
-              containerStyles="mt-4"
-            />
+
+            {timerCompleted ? (
+              <CustomButton
+                title="Reset Timer"
+                onPress={resetTimer}
+                containerStyles="mt-4"
+              />
+            ) : (
+              <CustomButton
+                title={isMeditating ? 'Pause Meditation' : 'Start Meditation'}
+                onPress={toggleMeditationSessionStatus}
+                containerStyles="mt-4"
+              />
+            )}
           </View>
         </AppGradient>
       </ImageBackground>
