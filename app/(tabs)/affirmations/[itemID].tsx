@@ -4,6 +4,8 @@ import {
   ImageBackground,
   Pressable,
   ScrollView,
+  StyleSheet,
+  Dimensions,
 } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -11,64 +13,33 @@ import { GalleryPreviewData } from '@/constants/models/AffirmationCategory'
 import AFFIRMATION_GALLERY from '@/constants/affirmation-gallery'
 import AppGradient from '@/components/AppGradient'
 import { AntDesign } from '@expo/vector-icons'
-import beachImage from '@/assets/meditation-images/beach.webp'
+
+const { height } = Dimensions.get('window')
 
 const AffirmationPractice = () => {
   const { itemID } = useLocalSearchParams()
   const [affirmation, setAffirmation] = useState<GalleryPreviewData>()
-
   const [sentences, setSentences] = useState<string[]>([])
-
-  // useEffect(() => {
-  //   for (let idx = 0; idx < AFFIRMATION_GALLERY.length; idx++) {
-  //     const affirmationsData = AFFIRMATION_GALLERY[idx].data
-
-  //     const affirmationToStart = affirmationsData.find(
-  //       (a) => a.id === Number(itemID)
-  //     )
-
-  //     if (affirmationToStart) {
-  //       setAffirmation(affirmationToStart)
-
-  //       const affirmationArray = affirmationToStart.text.split('.')
-
-  //       // ** remove the last element if it's an empty string
-  //       if (affirmationArray[affirmationArray.length - 1] === '') {
-  //         affirmationArray.pop()
-  //       }
-
-  //       setSentences(affirmationArray)
-
-  //       return
-  //     }
-  //   }
-  // }, [itemID])
 
   useEffect(() => {
     if (!itemID) return
 
-    // Flatten all affirmation data from every category
     const allAffirmations = AFFIRMATION_GALLERY.flatMap(
       (category) => category.data
     )
 
-    // Find the affirmation with matching ID
     const affirmationToStart = allAffirmations.find(
       (a) => a.id === Number(itemID)
     )
 
-    // If found, update states
     if (affirmationToStart) {
       setAffirmation(affirmationToStart)
-
-      // Split text into sentences for progressive display
       const splitSentences = affirmationToStart.text.match(
         /[^.!?]+[.!?]+/g
       ) || [affirmationToStart.text]
       setSentences(splitSentences.map((s) => s.trim()))
     }
   }, [itemID])
-
 
   if (!affirmation) {
     return (
@@ -79,33 +50,29 @@ const AffirmationPractice = () => {
   }
 
   return (
-    <View className="flex-1">
+    <View style={styles.container}>
       <ImageBackground
         source={affirmation.image}
-        className="flex-1 justify-end"
+        style={styles.imageBackground}
         resizeMode="cover"
       >
-        <AppGradient colors={['rgb(0, 0, 0, 0.3)', 'rgb(0, 0, 0, 0.9)']}>
-          <View className="p-6">
-            <Pressable
-              className="mt-6 self-start flex-row items-center"
-              onPress={() => router.back()}
-            >
+        <AppGradient colors={['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.9)']}>
+          <View style={styles.contentContainer}>
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <AntDesign name="arrowleft" size={24} color="white" />
-              <Text className="ml-2 text-white text-lg">Back</Text>
+              <Text style={styles.backText}>Back</Text>
             </Pressable>
-            <ScrollView className="mt-20" showsVerticalScrollIndicator={false}>
-              <View className="justify-center">
-                <View className="h-4/5 justify-center">
-                  {sentences.map((sentence, idx) => (
-                    <Text
-                      key={idx}
-                      className="text-white text-3xl mb-12 font-bold text-center"
-                    >
-                      {sentence}.
-                    </Text>
-                  ))}
-                </View>
+
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.textContainer}>
+                {sentences.map((sentence, idx) => (
+                  <Text key={idx} style={styles.sentenceText}>
+                    {sentence}.
+                  </Text>
+                ))}
               </View>
             </ScrollView>
           </View>
@@ -114,4 +81,47 @@ const AffirmationPractice = () => {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  imageBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 24,
+    paddingTop: 60, // Extra space at the top
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backText: {
+    marginLeft: 8,
+    color: 'white',
+    fontSize: 18,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40, // Extra space at the bottom
+  },
+  textContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  sentenceText: {
+    color: 'white',
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 36, // Better line spacing
+  },
+})
+
 export default AffirmationPractice
